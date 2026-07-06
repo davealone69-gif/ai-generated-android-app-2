@@ -137,44 +137,10 @@ fun MainAppScreen() {
         // Main Notepad Dashboard
         Scaffold(
             topBar = {
-                SmallTopAppBar(
-                    title = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Lock,
-                                contentDescription = "Security Status",
-                                tint = if (isPinEnabled) MaterialTheme.colorScheme.primary else Color.Gray,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "SafePad",
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                    },
-                    actions = {
-                        // Quick Lock Button (only if PIN is enabled)
-                        if (isPinEnabled) {
-                            IconButton(onClick = { isUnlocked = false }) {
-                                Icon(
-                                    imageVector = Icons.Default.Lock,
-                                    contentDescription = "Lock App",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                        IconButton(onClick = { showSettingsDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Security Settings"
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.smallTopAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                NotepadTopAppBar(
+                    isPinEnabled = isPinEnabled,
+                    onLockClick = { isUnlocked = false },
+                    onSettingsClick = { showSettingsDialog = true }
                 )
             },
             floatingActionButton = {
@@ -182,7 +148,7 @@ fun MainAppScreen() {
                     onClick = { isCreatingNewNote = true },
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
+                ) { 
                     Icon(imageVector = Icons.Default.Add, contentDescription = "Add Note")
                 }
             }
@@ -323,7 +289,59 @@ fun MainAppScreen() {
                 onDismiss = { showSettingsDialog = false },
                 onToggleLock = { isPinEnabled = it },
                 onUpdatePin = { newPin -> appPin = newPin }
-            )
+            )         }
+    }
+}
+
+// Custom top bar to avoid experimental APIs and compile safely across different M3 versions
+@Composable
+fun NotepadTopAppBar(
+    isPinEnabled: Boolean,
+    onLockClick: () -> Unit,
+    onSettingsClick: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "Security Status",
+                    tint = if (isPinEnabled) MaterialTheme.colorScheme.primary else Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "SafePad",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Row {
+                if (isPinEnabled) {
+                    IconButton(onClick = onLockClick) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "Lock App",
+                            tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                IconButton(onClick = onSettingsClick) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Security Settings"
+                    )
+                }
+            }
         }
     }
 }
@@ -359,7 +377,7 @@ fun CategoryTabsRow(
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
-            }
+            } 
         }
     }
 }
@@ -685,14 +703,19 @@ fun SettingsDialog(
                     }
                     Switch(
                         checked = toggleEnabledState,
-                        onCheckedChange = {
+                        onCheckedChange = { 
                             toggleEnabledState = it
                             onToggleLock(it)
                         }
                     )
                 }
 
-                HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color.Gray.copy(alpha = 0.2f))
+                )
 
                 // Configure PIN view
                 if (toggleEnabledState) {
