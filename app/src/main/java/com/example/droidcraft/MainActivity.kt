@@ -2,15 +2,21 @@ package com.example.droidcraft
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,16 +38,6 @@ import androidx.compose.ui.window.Dialog
 import java.text.SimpleDateFormat
 import java.util.*
 
-// Data Model
-data class Note(
-    val id: String = UUID.randomUUID().toString(),
-    var title: String,
-    var content: String,
-    var category: String,
-    val timestamp: Long = System.currentTimeMillis()
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,11 +47,11 @@ class MainActivity : ComponentActivity() {
                     primary = Color(0xFF80DEEA),
                     onPrimary = Color(0xFF00363A),
                     primaryContainer = Color(0xFF004D40),
-                    onPrimaryContainer = Color(0xFFE0F2F1),
                     secondary = Color(0xFFFFB74D),
-                    surface = Color(0xFF121212),
-                    background = Color(0xFF0E0E0E),
-                    onSurface = Color(0xFFE3E3E3)
+                    background = Color(0xFF121212),
+                    surface = Color(0xFF1E1E1E),
+                    onBackground = Color(0xFFE0E0E0),
+                    onSurface = Color(0xFFE0E0E0)
                 )
             ) {
                 Surface(
@@ -62,640 +59,576 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainAppScreen()
-                } 
+                }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// Data Classes
+data class Note(
+    val id: String = UUID.randomUUID().toString(),
+    val title: String,
+    val content: String,
+    val category: String,
+    val timestamp: Long = System.currentTimeMillis(),
+    val isPinned: Boolean = false,
+    val color: Color = Color(0xFF2D2D2D)
+)
+
+// Main State & Navigation Controller
 @Composable
 fun MainAppScreen() {
-    // In-memory persistent states
-    val notes = remember {
-        mutableStateListOf(
-            Note(
-                title = "Meeting Notes 📝",
-                content = "Discuss app architecture, finalize database schema, and decide lock-screen UI layout.",
-                category = "Work"
-            ),
-            Note(
-                title = "Grocery List 🛒",
-                content = "Apples, organic almond butter, organic honey, spinach, and whole wheat sourdough.",
-                category = "Personal"
-            ),
-            Note(
-                title = "App Idea 💡",
-                content = "A sleek, distraction-free markdown notepad app with local AES lock-screen capabilities.",
-                category = "Ideas"
-            ),
-            Note(
-                title = "Gym Workout 🏃‍♂️",
-                content = "5 sets of Deadlifts, 3 sets of pullups, followed by 20 minutes of high-intensity cardio.",
-                category = "Personal"
+    // Note Management
+    var notesList by rememberSaveable {
+        mutableStateOf(
+            listOf(
+                Note(
+                    title = "Meeting Brainstorming",
+                    content = "1. Design new interactive dashboard\n2. Setup automated security scanning\n3. Coordinate launch date with product team.",
+                    category = "Work",
+                    color = Color(0xFF2C3E50),
+                    isPinned = true
+                ),
+                Note(
+                    title = "Grocery List",
+                    content = "Organic milk, avocados, whole wheat bread, cold brew coffee, almonds.",
+                    category = "Personal",
+                    color = Color(0xFF1E3D59)
+                ),
+                Note(
+                    title = "App Architecture Idea",
+                    content = "Use clean architecture with single MVI container pattern. Use ProtoDataStore for local cache.",
+                    category = "Ideas",
+                    color = Color(0xFF1A3636)
+                ),
+                Note(
+                    title = "Monthly Budget Goals",
+                    content = "Track discretionary spending. Put 30% into savings. Cut down on daily coffee runs.",
+                    category = "Finance",
+                    color = Color(0xFF4A2E35)
+                )
             )
         )
     }
 
-    val categories = remember {
-        mutableStateListOf("All", "Work", "Personal", "Ideas", "Urgent")
-    }
+    // Security Settings
+    var appPin by rememberSaveable { mutableStateOf("1234") }
+    var isPinEnabled by rememberSaveable { mutableStateOf(true) }
+    var isUnlocked by remember { mutableStateOf(!isPinEnabled) }
 
-    var selectedCategory by remember { mutableStateOf("All") }
-    var searchQuery by remember { mutableStateOf("") }
+    // Screen States
+    var selectedCategory by rememberSaveable { mutableStateOf("All") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    var showSettingsDialog by remember { mutableStateOf(false) }
+    var currentEditingNote by remember { mutableStateOf<Note?>(null) }
+    var isCreatingNewNote by remember { mutableStateOf(false) }
 
-    // Lock System States
-    var currentPin by remember { mutableStateOf("1234") } // Default preset PIN
-    var isAppLocked by remember { mutableStateOf(true) } // Starts locked for demo validation
-    var showPinSettings by remember { mutableStateOf(false) }
+    // Categories available
+    val categories = listOf("All", "Work", "Personal", "Ideas", "Finance", "Urgent")
 
-    // Dialog state for Notes
-    var showNoteDialog by remember { mutableStateOf(false) }
-    var noteToEdit by remember { mutableStateOf<Note?>(null) }
-
-    // Dialog state for adding Category
-    var showAddCategoryDialog by remember { mutableStateOf(false) }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Main Notepad Content Screen
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            // Header Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "DroidCraft",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 1.5.sp
-                        )
-                    )
-                    Text(
-                        text = "Secure Personal Notes",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    )
-                } 
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Lock Screen Status indicator
-                    IconButton(
-                        onClick = {
-                            if (currentPin.isNotEmpty()) {
-                                isAppLocked = true
-                            }
-                        },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Icon(
-                            imageVector = if (currentPin.isEmpty()) Icons.Default.LockOpen else Icons.Default.Lock,
-                            contentDescription = "Lock App"
-                        )
-                    }
-
-                    // Settings for PIN configuration
-                    IconButton(
-                        onClick = { showPinSettings = true },
-                        colors = IconButtonDefaults.iconButtonColors(
-                            contentColor = MaterialTheme.colorScheme.secondary
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Lock Settings"
-                        )
-                    }
-                }
-            }
-
-            // Search Bar Component
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                placeholder = { Text("Search your notes...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
-                        }
-                    }
-                },
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                ),
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            // Category Filter Layout
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                LazyRow(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(categories) { category ->
-                        val isSelected = category == selectedCategory
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedCategory = category },
-                            label = { Text(category) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                labelColor = MaterialTheme.colorScheme.onSurface
+    // Force unlock view if PIN is enabled and app is locked
+    if (isPinEnabled && !isUnlocked) {
+        LockScreen(
+            correctPin = appPin,
+            onUnlockSuccess = { isUnlocked = true }
+        )
+    } else {
+        // Main Notepad Dashboard
+        Scaffold(
+            topBar = {
+                SmallTopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = "Security Status",
+                                tint = if (isPinEnabled) MaterialTheme.colorScheme.primary else Color.Gray,
+                                modifier = Modifier.size(20.dp)
                             )
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Custom quick-add category button
-                IconButton(
-                    onClick = { showAddCategoryDialog = true },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            MaterialTheme.colorScheme.primaryContainer,
-                            shape = CircleShape
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Add Category",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "SafePad",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    },
+                    actions = {
+                        // Quick Lock Button (only if PIN is enabled)
+                        if (isPinEnabled) {
+                            IconButton(onClick = { isUnlocked = false }) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = "Lock App",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                        IconButton(onClick = { showSettingsDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Security Settings"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.smallTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
                     )
+                )
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = { isCreatingNewNote = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add Note")
                 }
             }
-
-            // Notes List Filtering logic
-            val filteredNotes = notes.filter { note ->
-                val matchesCategory = selectedCategory == "All" || note.category == selectedCategory
-                val matchesSearch = note.title.contains(searchQuery, ignoreCase = true) ||
-                        note.content.contains(searchQuery, ignoreCase = true)
-                matchesCategory && matchesSearch
-            }
-
-            if (filteredNotes.isEmpty()) {
-                Box(
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                // Search Bar Row
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "No Notes",
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "No notes found in this view",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    placeholder = { Text("Search notes...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Clear")
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = Color.Gray.copy(alpha = 0.5f)
+                    )
+                )
+
+                // Category Filter Slider
+                CategoryTabsRow(
+                    categories = categories,
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = { selectedCategory = it }
+                )
+
+                // Notes Grid View
+                val filteredNotes = notesList.filter { note ->
+                    val matchesCategory = (selectedCategory == "All" || note.category == selectedCategory)
+                    val matchesSearch = note.title.contains(searchQuery, ignoreCase = true) ||
+                            note.content.contains(searchQuery, ignoreCase = true)
+                    matchesCategory && matchesSearch
+                }.sortedWith(compareByDescending<Note> { it.isPinned }.thenByDescending { it.timestamp })
+
+                if (filteredNotes.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "No Notes",
+                                modifier = Modifier.size(64.dp),
+                                tint = Color.Gray.copy(alpha = 0.4f)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "No notes found",
+                                color = Color.Gray,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
                     }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(filteredNotes) { note ->
-                        NoteCard(
-                            note = note,
-                            onEdit = {
-                                noteToEdit = note
-                                showNoteDialog = true
-                            },
-                            onDelete = { notes.remove(note) }
-                        )
-                    } 
+                } else {
+                    NotesGrid(
+                        notes = filteredNotes,
+                        onNoteClick = { currentEditingNote = it },
+                        onDeleteClick = { noteToDelete ->
+                            notesList = notesList.filter { it.id != noteToDelete.id }
+                        },
+                        onPinClick = { noteToPin ->
+                            notesList = notesList.map {
+                                if (it.id == noteToPin.id) it.copy(isPinned = !it.isPinned) else it
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f)
+                    )
                 }
             }
         }
 
-        // Add Note Floating Action Button
-        FloatingActionButton(
-            onClick = {
-                noteToEdit = null
-                showNoteDialog = true
-            },
-            containerColor = MaterialTheme.colorScheme.secondary,
-            contentColor = Color.Black,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp)
-        ) {
-            Icon(Icons.Default.Add, contentDescription = "Create Note")
-        }
-
-        // Lock Screen Overlay Screen Component
-        AnimatedVisibility(
-            visible = isAppLocked && currentPin.isNotEmpty(),
-            enter = fadeIn(),
-            exit = fadeOut()
-        ) {
-            LockScreen(
-                correctPin = currentPin,
-                onUnlocked = { isAppLocked = false }
+        // Add Note Dialog/Overlay Screen
+        if (isCreatingNewNote) {
+            AddEditNoteDialog(
+                categories = categories.filter { it != "All" },
+                onDismiss = { isCreatingNewNote = false },
+                onSave = { title, content, category, color ->
+                    val newNote = Note(
+                        title = title.ifBlank { "Untitled Note" },
+                        content = content,
+                        category = category,
+                        color = color
+                    )
+                    notesList = notesList + newNote
+                    isCreatingNewNote = false
+                }
             )
         }
-    }
 
-    // Dynamic Note Creator/Editor Dialog
-    if (showNoteDialog) {
-        NoteEditorDialog(
-            note = noteToEdit,
-            categories = categories.filter { it != "All" },
-            onSave = { title, content, category ->
-                if (noteToEdit == null) {
-                    notes.add(Note(title = title, content = content, category = category))
-                } else {
-                    val index = notes.indexOf(noteToEdit)
-                    if (index != -1) {
-                        notes[index] = noteToEdit!!.copy(
-                            title = title,
-                            content = content,
-                            category = category,
-                            timestamp = System.currentTimeMillis()
-                        )
-                    } 
+        // Edit Note Dialog/Overlay Screen
+        currentEditingNote?.let { note ->
+            AddEditNoteDialog(
+                noteToEdit = note,
+                categories = categories.filter { it != "All" },
+                onDismiss = { currentEditingNote = null },
+                onSave = { title, content, category, color ->
+                    notesList = notesList.map {
+                        if (it.id == note.id) {
+                            it.copy(
+                                title = title.ifBlank { "Untitled Note" },
+                                content = content,
+                                category = category,
+                                color = color,
+                                timestamp = System.currentTimeMillis()
+                            )
+                        } else it
+                    }
+                    currentEditingNote = null
                 }
-                showNoteDialog = false
-            },
-            onDismiss = { showNoteDialog = false }
-        )
-    }
+            )
+        }
 
-    // Dynamic PIN Management Dialog
-    if (showPinSettings) {
-        PinConfigurationDialog(
-            currentPin = currentPin,
-            onSavePin = { newPin ->
-                currentPin = newPin
-                showPinSettings = false
-            },
-            onDismiss = { showPinSettings = false }
-        )
-    }
-
-    // Create Category Dialog
-    if (showAddCategoryDialog) {
-        AddCategoryDialog(
-            onAdd = { newCat ->
-                if (newCat.isNotBlank() && !categories.contains(newCat)) {
-                    categories.add(newCat)
-                }
-                showAddCategoryDialog = false
-            },
-            onDismiss = { showAddCategoryDialog = false }
-        )
+        // Settings Dialog
+        if (showSettingsDialog) {
+            SettingsDialog(
+                isPinEnabled = isPinEnabled,
+                currentPin = appPin,
+                onDismiss = { showSettingsDialog = false },
+                onToggleLock = { isPinEnabled = it },
+                onUpdatePin = { newPin -> appPin = newPin }
+            )
+        }
     }
 }
 
-// Beautiful Card design for note rendering
+// Category Slider Component
+@Composable
+fun CategoryTabsRow(
+    categories: List<String>,
+    selectedCategory: String,
+    onCategorySelected: (String) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(categories) { category ->
+            val isSelected = category == selectedCategory
+            val containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+            val contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(containerColor)
+                    .clickable { onCategorySelected(category) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = category,
+                    color = contentColor,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+// Grid of Note Cards
+@Composable
+fun NotesGrid(
+    notes: List<Note>,
+    onNoteClick: (Note) -> Unit,
+    onDeleteClick: (Note) -> Unit,
+    onPinClick: (Note) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = modifier.padding(horizontal = 12.dp),
+        contentPadding = PaddingValues(bottom = 80.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(notes, key = { it.id }) { note ->
+            NoteCard(
+                note = note,
+                onClick = { onNoteClick(note) },
+                onDelete = { onDeleteClick(note) },
+                onPinToggle = { onPinClick(note) }
+            )
+        }
+    }
+}
+
+// Individual Note Card Design
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NoteCard(
     note: Note,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+    onPinToggle: () -> Unit
 ) {
-    val formatter = remember { SimpleDateFormat("MMM dd, yyyy - hh:mm a", Locale.getDefault()) }
-    val formattedDate = formatter.format(Date(note.timestamp))
+    val formattedDate = remember(note.timestamp) {
+        val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+        sdf.format(Date(note.timestamp))
+    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onEdit() },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+            .height(180.dp)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onPinToggle
+            ),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = note.color)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                // Category Tag/Badge
-                Box(
-                    modifier = Modifier
-                        .background(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = note.category,
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Bold
+                    // Category Chip
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color.Black.copy(alpha = 0.3f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = note.category,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.SemiBold
                         )
-                    )
+                    }
+
+                    Row {
+                        if (note.isPinned) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Pinned Note",
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clickable { onPinToggle() }
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete Note",
+                            tint = Color.White.copy(alpha = 0.5f),
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable { onDelete() }
+                        )
+                    }
                 }
-
-                // Delete Button
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete Note",
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = note.title,
-                style = MaterialTheme.typography.titleMedium.copy(
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = note.title,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = note.content,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                ),
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
+                    fontSize = 16.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = note.content,
+                    fontSize = 13.sp,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                    color = Color.White.copy(alpha = 0.8f),
+                    lineHeight = 16.sp
+                )
+            }
             Text(
                 text = formattedDate,
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                )
+                fontSize = 10.sp,
+                color = Color.White.copy(alpha = 0.5f),
+                modifier = Modifier.align(Alignment.End)
             )
         }
     }
 }
 
-// Native Material Editor Overlay
-@OptIn(ExperimentalMaterial3Api::class)
+// Add/Edit Note Modal
 @Composable
-fun NoteEditorDialog(
-    note: Note?,
+fun AddEditNoteDialog(
+    noteToEdit: Note? = null,
     categories: List<String>,
-    onSave: (String, String, String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onSave: (title: String, content: String, category: String, color: Color) -> Unit
 ) {
-    var title by remember { mutableStateOf(note?.title ?: "") }
-    var content by remember { mutableStateOf(note?.content ?: "") }
-    var selectedCategory by remember { mutableStateOf(note?.category ?: categories.firstOrNull() ?: "Work") }
-    var dropdownExpanded by remember { mutableStateOf(false) }
+    var title by remember { mutableStateOf(noteToEdit?.title ?: "") }
+    var content by remember { mutableStateOf(noteToEdit?.content ?: "") }
+    var selectedCategory by remember { mutableStateOf(noteToEdit?.category ?: categories.first()) }
+
+    // Palette colors for notes
+    val colors = listOf(
+        Color(0xFF2C3E50), // Navy
+        Color(0xFF1E3D59), // Steel Blue
+        Color(0xFF1A3636), // Deep Pine
+        Color(0xFF4A2E35), // Dark Rose
+        Color(0xFF3B1E40), // Dark Purple
+        Color(0xFF3E2723)  // Dark Espresso
+    )
+    var selectedCardColor by remember { mutableStateOf(noteToEdit?.color ?: colors.first()) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(vertical = 16.dp),
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.padding(8.dp)
+            color = MaterialTheme.colorScheme.surface
         ) {
             Column(
                 modifier = Modifier
-                    .padding(20.dp)
-                    .fillMaxWidth
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = if (note == null) "Create Note" else "Edit Note",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    ),
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    text = if (noteToEdit == null) "Create Note" else "Edit Note",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
 
+                // Title Input
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
                     label = { Text("Title") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Custom category selector drop-down
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(
-                        onClick = { dropdownExpanded = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                // Category selection dropdown-like list
+                Column {
+                    Text("Select Category", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text("Category: $selectedCategory")
+                        items(categories) { category ->
+                            val isSelected = category == selectedCategory
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .border(
+                                        width = 2.dp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                        shape = RoundedCornerShape(8.dp)
+                                    )
+                                    .background(Color.White.copy(alpha = 0.05f))
+                                    .clickable { selectedCategory = category }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    category,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
                     }
-                    DropdownMenu(
-                        expanded = dropdownExpanded,
-                        onDismissRequest = { dropdownExpanded = false }
+                }
+
+                // Color Picker Row
+                Column {
+                    Text("Choose Card Color", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        categories.forEach { category ->
-                            DropdownMenuItem(
-                                text = { Text(category) },
-                                onClick = {
-                                    selectedCategory = category
-                                    dropdownExpanded = false
-                                }
+                        colors.forEach { color ->
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .border(
+                                        width = if (selectedCardColor == color) 3.dp else 0.dp,
+                                        color = Color.White,
+                                        shape = CircleShape
+                                    )
+                                    .clickable { selectedCardColor = color }
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
+                // Content Input
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
                     label = { Text("Write something...") },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(160.dp),
-                    maxLines = 8
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    TextButton(onClick = onDismiss) {
-                        Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            if (title.isNotBlank()) {
-                                onSave(title, content, selectedCategory)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    ) {
-                        Text("Save Note")
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Config Dialog for the Lock screen security pin
-@Composable
-fun PinConfigurationDialog(
-    currentPin: String,
-    onSavePin: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var pinValue by remember { mutableStateOf(currentPin) }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Security Settings",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Set a 4-digit PIN lock screen passcode. Leave blank to completely disable passcode security.",
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = pinValue,
-                    onValueChange = { input ->
-                        if (input.all { it.isDigit() } && input.length <= 4) {
-                            pinValue = input
-                        }
-                    },
-                    label = { Text("4-Digit PIN") },
-                    singleLine = true,
-                    placeholder = { Text("Disabled") },
+                        .heightIn(min = 120.dp, max = 240.dp),
                     shape = RoundedCornerShape(12.dp)
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
-
+                // Dialog Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    TextButton(onClick = { onSavePin("") }) {
-                        Text("Disable Lock", color = MaterialTheme.colorScheme.error)
-                    }
-
-                    Row {
-                        TextButton(onClick = onDismiss) {
-                            Text("Cancel")
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Button(
-                            onClick = { onSavePin(pinValue) },
-                            enabled = pinValue.isEmpty() || pinValue.length == 4
-                        ) {
-                            Text("Apply")
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Interactive Quick-add category dialog
-@Composable
-fun AddCategoryDialog(
-    onAdd: (String) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var categoryText by remember { mutableStateOf("") }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "New Category",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = categoryText,
-                    onValueChange = { categoryText = it },
-                    label = { Text("Category Name") },
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) {
                         Text("Cancel")
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    Button(onClick = { onAdd(categoryText.trim()) }) {
-                        Text("Add")
+                    Button(
+                        onClick = { onSave(title, content, selectedCategory, selectedCardColor) },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Text("Save", color = MaterialTheme.colorScheme.onPrimary)
                     }
                 }
             }
@@ -703,114 +636,237 @@ fun AddCategoryDialog(
     }
 }
 
-// Gorgeous lock screen design with simulated PIN grid pad
+// Settings Screen Dialog (PIN Management)
+@Composable
+fun SettingsDialog(
+    isPinEnabled: Boolean,
+    currentPin: String,
+    onDismiss: () -> Unit,
+    onToggleLock: (Boolean) -> Unit,
+    onUpdatePin: (String) -> Unit
+) {
+    var newPinInput by remember { mutableStateOf("") }
+    var changePinError by remember { mutableStateOf("") }
+    var toggleEnabledState by remember { mutableStateOf(isPinEnabled) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                Text(
+                    text = "Security Settings",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Toggle Security Option
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("PIN Code Protection", fontWeight = FontWeight.Bold)
+                        Text(
+                            "Require PIN on launch",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+                    Switch(
+                        checked = toggleEnabledState,
+                        onCheckedChange = {
+                            toggleEnabledState = it
+                            onToggleLock(it)
+                        }
+                    )
+                }
+
+                HorizontalDivider(color = Color.Gray.copy(alpha = 0.2f))
+
+                // Configure PIN view
+                if (toggleEnabledState) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Modify PIN", fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Enter a new 4-digit security PIN:",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+
+                        OutlinedTextField(
+                            value = newPinInput,
+                            onValueChange = { input ->
+                                if (input.length <= 4 && input.all { it.isDigit() }) {
+                                    newPinInput = input
+                                    changePinError = ""
+                                }
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("New PIN (e.g. 1234)") }
+                        )
+
+                        if (changePinError.isNotEmpty()) {
+                            Text(changePinError, color = Color.Red, style = MaterialTheme.typography.bodySmall)
+                        }
+
+                        Button(
+                            onClick = {
+                                if (newPinInput.length == 4) {
+                                    onUpdatePin(newPinInput)
+                                    newPinInput = ""
+                                    onDismiss()
+                                } else {
+                                    changePinError = "PIN must be exactly 4 digits long!"
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Update PIN")
+                        }
+                    }
+                }
+
+                // Close Button
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.align(Alignment.End)
+                ) {
+                    Text("Close")
+                }
+            }
+        }
+    }
+}
+
+// Security Pad Lock Screen Interface
 @Composable
 fun LockScreen(
     correctPin: String,
-    onUnlocked: () -> Unit
+    onUnlockSuccess: () -> Unit
 ) {
-    var enteredPin by remember { mutableStateOf("") }
-    var isError by remember { mutableStateOf(false) }
+    var enteredDigits by remember { mutableStateOf("") }
+    var isErrorState by remember { mutableStateOf(false) }
 
-    Surface(
-        color = Color(0xFC0A0A0A), // Extra dark secure background overlay
-        modifier = Modifier.fillMaxSize()
+    // Intercept Back Press during lock screen
+    BackHandler {
+        // Prevent back press to bypass security screen
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F0F0F))
+            .padding(24.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                imageVector = Icons.Default.Lock,
-                contentDescription = "Padlock Logo",
-                tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(64.dp)
-            )
+            Spacer(modifier = Modifier.height(40.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = if (isError) "Incorrect Passcode" else "Secure Padlock Active",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+            // Screen Lock Header Icon & Title
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = "App Locked",
+                    tint = if (isErrorState) Color.Red else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(72.dp)
                 )
-            )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "SafePad Secure Lock",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = if (isErrorState) "Incorrect PIN, please try again." else "Enter PIN to access your notes (Default: 1234)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isErrorState) Color.Red else Color.LightGray,
+                    textAlign = TextAlign.Center
+                )
+            }
 
-            Text(
-                text = "Please enter your 4-digit security PIN code",
-                style = MaterialTheme.typography.bodySmall.copy(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                ),
-                modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
-            )
-
-            // Dynamic security DOTS indicators
+            // PIN Indicator Code Dots
             Row(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(bottom = 32.dp)
+                modifier = Modifier.padding(vertical = 32.dp)
             ) {
                 for (i in 0 until 4) {
-                    val isActive = i < enteredPin.length
+                    val isActive = i < enteredDigits.length
                     Box(
                         modifier = Modifier
-                            .size(16.dp)
+                            .size(18.dp)
                             .clip(CircleShape)
                             .background(
                                 if (isActive) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                                else Color.White.copy(alpha = 0.2f)
+                            )
+                            .border(
+                                width = 1.dp,
+                                color = if (isErrorState) Color.Red else Color.Transparent,
+                                shape = CircleShape
                             )
                     )
                 }
             }
 
-            // Keyboard grid Layout
-            val numbers = listOf(
-                listOf("1", "2", "3"),
-                listOf("4", "5", "6"),
-                listOf("7", "8", "9"),
-                listOf("C", "0", "⌫")
-            )
-
+            // Lock Screen Keyboard Layout (Grid of Numbers)
             Column(
-                modifier = Modifier.fillMaxWidth(0.8f),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                numbers.forEach { row ->
+                val keys = listOf(
+                    listOf("1", "2", "3"),
+                    listOf("4", "5", "6"),
+                    listOf("7", "8", "9"),
+                    listOf("Clear", "0", "Del")
+                )
+
+                for (row in keys) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(0.85f),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        row.forEach { char ->
+                        for (key in row) {
                             Box(
                                 modifier = Modifier
-                                    .size(64.dp)
+                                    .size(72.dp)
                                     .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surface)
+                                    .background(Color.White.copy(alpha = 0.05f))
                                     .clickable {
-                                        isError = false
-                                        when (char) {
-                                            "C" -> {
-                                                enteredPin = ""
-                                            }
-                                            "⌫" -> {
-                                                if (enteredPin.isNotEmpty()) {
-                                                    enteredPin = enteredPin.dropLast(1)
-                                                }
+                                        isErrorState = false
+                                        when (key) {
+                                            "Clear" -> enteredDigits = ""
+                                            "Del" -> if (enteredDigits.isNotEmpty()) {
+                                                enteredDigits = enteredDigits.dropLast(1)
                                             }
                                             else -> {
-                                                if (enteredPin.length < 4) {
-                                                    enteredPin += char
-                                                    // Auto trigger verification once full
-                                                    if (enteredPin.length == 4) {
-                                                        if (enteredPin == correctPin) {
-                                                            onUnlocked()
+                                                if (enteredDigits.length < 4) {
+                                                    enteredDigits += key
+                                                    // Trigger validation check once PIN reaches correct length limit
+                                                    if (enteredDigits.length == 4) {
+                                                        if (enteredDigits == correctPin) {
+                                                            onUnlockSuccess()
                                                         } else {
-                                                            isError = true
-                                                            enteredPin = ""
+                                                            isErrorState = true
+                                                            enteredDigits = ""
                                                         }
                                                     }
                                                 }
@@ -819,27 +875,32 @@ fun LockScreen(
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = char,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                when (key) {
+                                    "Del" -> Icon(
+                                        imageVector = Icons.Default.ArrowBack,
+                                        contentDescription = "Backspace",
+                                        tint = Color.White
+                                    )
+                                    "Clear" -> Text(
+                                        text = "C",
+                                        color = Color.White.copy(alpha = 0.7f),
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    else -> Text(
+                                        text = key,
+                                        color = Color.White,
+                                        fontSize = 24.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // Demo Help Overlay note so users are never permanently locked out
-            Text(
-                text = "Demo Hint: Default PIN is \"1234\"",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-                )
-            )
-        } 
+            Spacer(modifier = Modifier.height(24.dp))
+        }
     }
 }
