@@ -40,6 +40,7 @@ data class Note(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,12 +62,13 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MainAppScreen()
-                }
+                } 
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainAppScreen() {
     // In-memory persistent states
@@ -144,7 +146,7 @@ fun MainAppScreen() {
                             color = MaterialTheme.colorScheme.secondary
                         )
                     )
-                }
+                } 
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Lock Screen Status indicator
@@ -293,7 +295,7 @@ fun MainAppScreen() {
                             },
                             onDelete = { notes.remove(note) }
                         )
-                    }
+                    } 
                 }
             }
         }
@@ -343,7 +345,7 @@ fun MainAppScreen() {
                             category = category,
                             timestamp = System.currentTimeMillis()
                         )
-                    }
+                    } 
                 }
                 showNoteDialog = false
             },
@@ -473,6 +475,7 @@ fun NoteCard(
 }
 
 // Native Material Editor Overlay
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteEditorDialog(
     note: Note?,
@@ -494,7 +497,7 @@ fun NoteEditorDialog(
             Column(
                 modifier = Modifier
                     .padding(20.dp)
-                    .fillMaxWidth()
+                    .fillMaxWidth
             ) {
                 Text(
                     text = if (note == null) "Create Note" else "Edit Note",
@@ -837,6 +840,6 @@ fun LockScreen(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
                 )
             )
-        }
+        } 
     }
 }
