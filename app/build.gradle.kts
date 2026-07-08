@@ -29,7 +29,6 @@ android {
         compose = true
     }
     composeOptions {
-        // Kotlin Compiler Extension version 1.5.8 is compatible with Kotlin 1.9.22
         kotlinCompilerExtensionVersion = "1.5.8"
     }
 }
@@ -37,8 +36,11 @@ dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
-    // Updated Compose BOM for better compatibility with compiler 1.5.8 (stable 1.5.x versions)
-    implementation(platform("androidx.compose:compose-bom:2023.10.01"))
+    implementation(platform("androidx.compose:compose-bom:2023.08.00"))
     implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("com.google.android.material:material:1.11.0")
 }
