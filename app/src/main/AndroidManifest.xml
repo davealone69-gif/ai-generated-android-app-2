@@ -6,7 +6,7 @@
     <application
         android:allowBackup="true"
         android:label="DroidCraft App"
-        android:theme="@style/Theme.DroidCraft"> <!-- Updated theme to use custom Material 3 theme -->
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
         <activity
             android:name=".MainActivity"
             android:exported="true">
