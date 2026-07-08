@@ -84,7 +84,7 @@ fun NotePadApp() {
                 LazyColumn {
                     val filteredNotes = if (selectedCategory == "All") notes 
                                        else notes.filter { it.category == selectedCategory }
-                    items(filteredNotes) { note ->
+                    items(filteredNotes, key = { it.id }) { note ->
                         Card(modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth()) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(note.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
