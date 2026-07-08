@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Use the fully qualified name for the Material3 theme -->
     <style name="Theme.DroidCraft" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Define primary colors to ensure they are available to the theme -->
+        <!-- Define primary colors to ensure they are available -->
         <item name="colorPrimary">@android:color/holo_blue_dark</item>
         <item name="colorSecondary">@android:color/holo_green_dark</item>
         <item name="colorSurface">@android:color/black</item>
