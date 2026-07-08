@@ -3,12 +3,10 @@ package com.example.droidcraft
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.*
@@ -24,12 +22,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                NoteApp()
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    NoteApp()
+                }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteApp() {
     var isLocked by remember { mutableStateOf(false) }
@@ -49,7 +50,7 @@ fun NoteApp() {
                 Text("App is Locked")
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = { isLocked = false }) {
-                    Icon(Icons.Default.LockOpen, contentDescription = null)
+                    Icon(Icons.Filled.LockOpen, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Unlock")
                 }
@@ -58,7 +59,7 @@ fun NoteApp() {
     } else {
         Scaffold(
             topBar = {
-                SmallTopAppBar(
+                TopAppBar(
                     title = { Text("My Notes") },
                     actions = {
                         IconButton(onClick = { isLocked = true }) {
