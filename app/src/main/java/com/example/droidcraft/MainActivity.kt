@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
 data class Note(val id: Int, val title: String, val content: String, val category: String)
@@ -57,13 +58,15 @@ fun LockScreen(onUnlock: (String) -> Unit) {
             value = input,
             onValueChange = { input = it },
             label = { Text("Enter PIN (1234)") },
-            singleLine = true
+            singleLine = true,
+            visualTransformation = PasswordVisualTransformation()
         )
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = { onUnlock(input) }) { Text("Unlock") }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(onLock: () -> Unit) {
     val categories = listOf("All", "Work", "Personal", "Ideas")
@@ -80,7 +83,7 @@ fun NotesScreen(onLock: () -> Unit) {
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { }) { Icon(Icons.Default.Add, null) }
+            FloatingActionButton(onClick = { }) { Icon(Icons.Default.Add, contentDescription = "Add") }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).padding(16.dp)) {
