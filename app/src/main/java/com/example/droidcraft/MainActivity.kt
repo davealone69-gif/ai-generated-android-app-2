@@ -22,6 +22,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            // Using a default MaterialTheme definition to ensure compatibility
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     NotePadApp()
@@ -62,7 +63,11 @@ fun NotePadApp() {
         } else {
             ScrollableTabRow(selectedTabIndex = categories.indexOf(selectedCategory), edgePadding = 0.dp) {
                 categories.forEach { category ->
-                    Tab(selected = selectedCategory == category, onClick = { selectedCategory = category }, text = { Text(category) })
+                    Tab(
+                        selected = selectedCategory == category, 
+                        onClick = { selectedCategory = category }, 
+                        text = { Text(category) }
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
