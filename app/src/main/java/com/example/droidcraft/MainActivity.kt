@@ -23,10 +23,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     NotePadApp()
                 }
             }
@@ -36,7 +33,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun NotePadApp() {
-    var isLocked by remember { mutableStateOf(false) }
+    var isLocked by remember { mutableStateOf(true) }
     var selectedCategory by remember { mutableStateOf("All") }
     val notes = remember {
         listOf(
@@ -51,42 +48,25 @@ fun NotePadApp() {
     val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Droid Notes", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             IconButton(onClick = { isLocked = !isLocked }) {
-                Icon(
-                    imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
-                    contentDescription = "Lock/Unlock"
-                )
+                Icon(imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = "Lock/Unlock")
             }
         }
 
         if (isLocked) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("App is Locked", style = MaterialTheme.typography.headlineSmall)
+                Button(onClick = { isLocked = false }) { Text("Unlock App") }
             }
         } else {
-            ScrollableTabRow(
-                selectedTabIndex = categories.indexOf(selectedCategory),
-                edgePadding = 0.dp
-            ) {
+            ScrollableTabRow(selectedTabIndex = categories.indexOf(selectedCategory), edgePadding = 0.dp) {
                 categories.forEach { category ->
-                    Tab(
-                        selected = selectedCategory == category,
-                        onClick = { selectedCategory = category },
-                        text = { Text(category) }
-                    )
+                    Tab(selected = selectedCategory == category, onClick = { selectedCategory = category }, text = { Text(category) })
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(filteredNotes, key = { it.id }) { note ->
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
