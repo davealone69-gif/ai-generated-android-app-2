@@ -23,7 +23,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
                     NotePadApp()
                 }
             }
@@ -44,7 +47,7 @@ fun NotePadApp() {
         )
     }
 
-    val categories = listOf("All") + notes.map { it.category }.distinct()
+    val categories = remember(notes) { listOf("All") + notes.map { it.category }.distinct() }
     val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -55,7 +58,10 @@ fun NotePadApp() {
         ) {
             Text("Droid Notes", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             IconButton(onClick = { isLocked = !isLocked }) {
-                Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = "Lock")
+                Icon(
+                    imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
+                    contentDescription = "Lock/Unlock"
+                )
             }
         }
 
@@ -64,7 +70,10 @@ fun NotePadApp() {
                 Text("App is Locked", style = MaterialTheme.typography.headlineSmall)
             }
         } else {
-            ScrollableTabRow(selectedTabIndex = categories.indexOf(selectedCategory)) {
+            ScrollableTabRow(
+                selectedTabIndex = categories.indexOf(selectedCategory),
+                edgePadding = 0.dp
+            ) {
                 categories.forEach { category ->
                     Tab(
                         selected = selectedCategory == category,
@@ -78,7 +87,7 @@ fun NotePadApp() {
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(filteredNotes) { note ->
+                items(filteredNotes, key = { it.id }) { note ->
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(text = note.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
