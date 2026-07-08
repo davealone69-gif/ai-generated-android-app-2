@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme(colorScheme = darkColorScheme()) {
-                Surface(modifier = Modifier.fillMaxSize()) {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     NotePadApp()
                 }
             }
@@ -81,7 +81,6 @@ fun NotePadApp(viewModel: NoteViewModel = viewModel()) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(viewModel: NoteViewModel) {
     val notes by viewModel.filteredNotes.collectAsState()
@@ -90,7 +89,7 @@ fun NotesScreen(viewModel: NoteViewModel) {
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* Add functionality */ }) { 
+            FloatingActionButton(onClick = { }) { 
                 Icon(Icons.Default.Add, contentDescription = "Add") 
             }
         }
