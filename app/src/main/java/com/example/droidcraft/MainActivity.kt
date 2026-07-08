@@ -4,18 +4,16 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 
 data class Note(val id: Int, val title: String, val content: String, val category: String)
@@ -26,7 +24,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    NotePadApp()
+                    NoteApp()
                 }
             }
         }
@@ -35,59 +33,50 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NotePadApp() {
-    var isLocked by remember { mutableStateOf(true) }
-    var pin by remember { mutableStateOf("") }
-    val notes = remember {
-        mutableStateListOf(
-            Note(1, "Shopping", "Milk, Bread, Eggs", "Personal"),
-            Note(2, "Work Meeting", "Discuss Q4 targets", "Work"),
-            Note(3, "Idea", "Build a Compose app", "Personal")
-        )
-    }
+fun NoteApp() {
+    var isLocked by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("All") }
-    val categories = listOf("All", "Personal", "Work")
+    val notes = listOf(
+        Note(1, "Grocery", "Buy milk and eggs", "Personal"),
+        Note(2, "Meeting", "Discuss project Q4", "Work"),
+        Note(3, "Gym", "Leg day session", "Health")
+    )
+    val categories = listOf("All", "Personal", "Work", "Health")
 
-    if (isLocked) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(64.dp))
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(
-                value = pin,
-                onValueChange = { pin = it },
-                label = { Text("Enter PIN (1234)") },
-                singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("DroidCraft Notes") },
+                actions = {
+                    IconButton(onClick = { isLocked = !isLocked }) {
+                        Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, "Lock Toggle")
+                    }
+                }
             )
-            Button(onClick = { if (pin == "1234") isLocked = false }, modifier = Modifier.padding(top = 16.dp)) {
-                Text("Unlock")
-            }
         }
-    } else {
-        Scaffold { padding ->
-            Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
-                Row(modifier = Modifier.padding(bottom = 8.dp)) {
-                    categories.forEach { category ->
+    ) { padding ->
+        if (isLocked) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Text("App is locked. Unlock to view notes.")
+            }
+        } else {
+            Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 16.dp)) {
+                    items(categories) { cat ->
                         FilterChip(
-                            selected = selectedCategory == category,
-                            onClick = { selectedCategory = category },
-                            label = { Text(category) },
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                            selected = selectedCategory == cat,
+                            onClick = { selectedCategory = cat },
+                            label = { Text(cat) }
                         )
                     }
                 }
-                LazyColumn {
-                    val filteredNotes = if (selectedCategory == "All") notes 
-                                       else notes.filter { it.category == selectedCategory }
+
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
                     items(filteredNotes) { note ->
-                        Card(modifier = Modifier.padding(vertical = 8.dp).fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(note.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                        Card(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(16.dp)) {
+                                Text(note.title, style = MaterialTheme.typography.titleMedium)
                                 Text(note.content, style = MaterialTheme.typography.bodyMedium)
                                 Text(note.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                             }
