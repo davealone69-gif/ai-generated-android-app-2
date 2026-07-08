@@ -92,6 +92,7 @@ fun NotesScreen(onLock: () -> Unit) {
                 TextButton(onClick = onLock) { Text("Lock") }
             }
             
+            // Using FilterChip inside a simple Row
             Row(modifier = Modifier.padding(vertical = 8.dp)) {
                 categories.forEach { cat ->
                     FilterChip(
