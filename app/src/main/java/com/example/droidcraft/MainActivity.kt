@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
 fun NotePadApp(viewModel: NoteViewModel = viewModel()) {
     val isLocked by viewModel.isLocked.collectAsState()
     
-    AnimatedContent(targetState = isLocked, label = "ScreenTransition") { locked ->
+    Crossfade(targetState = isLocked, label = "ScreenTransition") { locked ->
         if (locked) {
             LockScreen(onUnlock = { pin -> viewModel.unlock(pin) })
         } else {
@@ -90,7 +90,9 @@ fun NotesScreen(viewModel: NoteViewModel) {
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = {}) { Icon(Icons.Default.Add, "Add") }
+            FloatingActionButton(onClick = { /* Add functionality */ }) { 
+                Icon(Icons.Default.Add, contentDescription = "Add") 
+            }
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
