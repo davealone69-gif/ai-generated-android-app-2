@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun NoteApp() {
     var isLocked by remember { mutableStateOf(false) }
-    var notes by remember { 
+    val notes by remember { 
         mutableStateOf(listOf(
             Note(1, "Shopping", "Buy milk and bread", "Personal"),
             Note(2, "Work", "Finish project report", "Work"),
