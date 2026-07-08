@@ -47,7 +47,7 @@ fun NoteApp() {
     if (isLocked) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("App is Locked")
+                Text("App is Locked", style = MaterialTheme.typography.headlineMedium)
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(onClick = { isLocked = false }) {
                     Icon(Icons.Filled.LockOpen, contentDescription = null)
