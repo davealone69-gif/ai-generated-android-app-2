@@ -30,40 +30,48 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteApp() {
     var isLocked by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("All") }
     val notes = remember {
         mutableStateListOf(
-            Note(1, "Shopping", "Buy milk and eggs", "Work"),
-            Note(2, "Idea", "Build a Compose app", "Personal"),
-            Note(3, "Reminder", "Doctor appointment", "Personal")
+            Note(1, "Shopping", "Buy milk and bread", "Personal"),
+            Note(2, "Work", "Finish project report", "Work"),
+            Note(3, "Idea", "Build a Compose app", "Personal")
         )
     }
 
-    val categories = listOf("All", "Work", "Personal")
-    val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
+    val categories = listOf("All", "Personal", "Work")
 
-    Scaffold(
-        topBar = {
-            SmallTopAppBar(
-                title = { Text("DroidCraft Notes") },
-                actions = {
-                    IconButton(onClick = { isLocked = !isLocked }) {
-                        Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = "Lock")
-                    }
+    if (isLocked) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("App is Locked")
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { isLocked = false }) {
+                    Icon(Icons.Default.LockOpen, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Unlock")
                 }
-            )
-        }
-    ) { padding ->
-        if (isLocked) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("App is Locked. Please unlock to view notes.")
             }
-        } else {
-            Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        }
+    } else {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("My Notes") },
+                    actions = {
+                        IconButton(onClick = { isLocked = true }) {
+                            Icon(Icons.Default.Lock, contentDescription = "Lock")
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     categories.forEach { category ->
                         FilterChip(
                             selected = selectedCategory == category,
@@ -72,14 +80,16 @@ fun NoteApp() {
                         )
                     }
                 }
-                Spacer(Modifier.height(16.dp))
+                
+                Spacer(modifier = Modifier.height(16.dp))
+
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(filteredNotes) { note ->
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(16.dp)) {
+                    items(notes.filter { selectedCategory == "All" || it.category == selectedCategory }) { note ->
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(16.dp)) {
                                 Text(note.title, style = MaterialTheme.typography.titleMedium)
                                 Text(note.content, style = MaterialTheme.typography.bodyMedium)
-                                Text(note.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                Text("Category: ${note.category}", style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
