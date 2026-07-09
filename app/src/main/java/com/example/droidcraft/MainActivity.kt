@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 data class Note(val id: Int, val title: String, val content: String, val category: String)
@@ -25,73 +24,84 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    NotePadApp()
-                }
+                NoteApp()
             }
         }
     }
 }
 
 @Composable
-fun NotePadApp() {
+fun NoteApp() {
     var isLocked by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("All") }
-    val categories = listOf("All", "Personal", "Work", "Ideas")
-    
     val notes = remember {
         mutableStateListOf(
-            Note(1, "Buy milk", "Check the expiry date", "Personal"),
-            Note(2, "Compose code", "Finish the Android project", "Work"),
-            Note(3, "Idea", "Build a robot", "Ideas")
+            Note(1, "Shopping", "Buy milk and eggs", "Personal"),
+            Note(2, "Work", "Submit report", "Work"),
+            Note(3, "Idea", "Build an AI app", "Personal")
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("My Notes", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            IconButton(onClick = { isLocked = !isLocked }) {
-                Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = "Lock")
-            }
-        }
+    val categories = listOf("All", "Personal", "Work")
 
-        if (isLocked) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("App is locked. Unlock to view notes.", style = MaterialTheme.typography.bodyLarge)
-            }
-        } else {
-            ScrollableTabRow(selectedTabIndex = categories.indexOf(selectedCategory)) {
-                categories.forEach { category ->
-                    Tab(
-                        selected = selectedCategory == category,
-                        onClick = { selectedCategory = category },
-                        text = { Text(category) }
-                    )
+    if (isLocked) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("App is Locked", style = MaterialTheme.typography.headlineMedium)
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(onClick = { isLocked = false }) {
+                    Text("Unlock")
                 }
             }
+        }
+    } else {
+        Scaffold(
+            topBar = {
+                SmallTopAppBar(
+                    title = { Text("My Notes") },
+                    actions = {
+                        IconButton(onClick = { isLocked = true }) {
+                            Icon(Icons.Default.Lock, contentDescription = "Lock")
+                        }
+                    }
+                )
+            }
+        ) { padding ->
+            Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
+                // Category Filter
+                Row(modifier = Modifier.padding(bottom = 16.dp)) {
+                    categories.forEach { category ->
+                        FilterChip(
+                            selected = selectedCategory == category,
+                            onClick = { selectedCategory = category },
+                            label = { Text(category) },
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                    }
+                }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                val filtered = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
-                items(filtered) { note ->
-                    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(note.title, fontWeight = FontWeight.Bold)
-                            Text(note.content, style = MaterialTheme.typography.bodyMedium)
-                            Text("Category: ${note.category}", style = MaterialTheme.typography.labelSmall)
+                // Note List
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val filteredNotes = if (selectedCategory == "All") notes 
+                                        else notes.filter { it.category == selectedCategory }
+                    
+                    items(filteredNotes) { note ->
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(note.title, style = MaterialTheme.typography.titleMedium)
+                                Text(note.content, style = MaterialTheme.typography.bodyMedium)
+                                Text("Category: ${note.category}", style = MaterialTheme.typography.labelSmall)
+                            }
                         }
                     }
                 }
             }
-            
-            FloatingActionButton(onClick = {}, modifier = Modifier.align(Alignment.End)) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-            }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SmallTopAppBar(title: @Composable () -> Unit, actions: @Composable RowScope.() -> Unit) {
+    TopAppBar(title = title, actions = actions)
 }
