@@ -18,48 +18,54 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-data class Note(val title: String, val content: String, val category: String)
+data class Note(val id: Int, val title: String, val content: String, val category: String)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                MainAppScreen()
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    NoteApp()
+                }
             }
         }
     }
 }
 
 @Composable
-fun MainAppScreen() {
+fun NoteApp() {
     var isLocked by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("All") }
-    val notes = remember { mutableStateListOf(
-        Note("Shopping", "Buy milk and eggs", "Personal"),
-        Note("Work", "Finish project report", "Work"),
-        Note("Idea", "Learn Jetpack Compose", "General")
-    )}
-    val categories = listOf("All", "Personal", "Work", "General")
+    val categories = listOf("All", "Work", "Personal", "Ideas")
+    
+    val notes = remember {
+        mutableStateListOf(
+            Note(1, "Meeting", "Discuss project scope", "Work"),
+            Note(2, "Grocery", "Buy milk and eggs", "Personal"),
+            Note(3, "App Idea", "Build a note app", "Ideas")
+        )
+    }
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    if (isLocked) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("My Notes", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            IconButton(onClick = { isLocked = !isLocked }) {
-                Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = "Lock")
-            }
+            Icon(Icons.Default.Lock, contentDescription = "Locked", modifier = Modifier.size(64.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { isLocked = false }) { Text("Unlock App") }
         }
-
-        if (isLocked) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("App is Locked", style = MaterialTheme.typography.titleLarge)
+    } else {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("My Notes", style = MaterialTheme.typography.headlineMedium)
+                IconButton(onClick = { isLocked = true }) {
+                    Icon(Icons.Default.LockOpen, "Lock App")
+                }
             }
-        } else {
-            // Category Filter
+            
             ScrollableTabRow(selectedTabIndex = categories.indexOf(selectedCategory)) {
                 categories.forEach { category ->
                     Tab(
@@ -72,25 +78,21 @@ fun MainAppScreen() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Notes List
             LazyColumn(modifier = Modifier.weight(1f)) {
-                val filteredNotes = if (selectedCategory == "All") notes 
-                                    else notes.filter { it.category == selectedCategory }
-                
-                items(filteredNotes) { note ->
+                items(notes.filter { selectedCategory == "All" || it.category == selectedCategory }) { note ->
                     Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = note.title, fontWeight = FontWeight.Bold)
-                            Text(text = note.content, style = MaterialTheme.typography.bodyMedium)
-                            Text(text = note.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            Text(note.title, fontWeight = FontWeight.Bold)
+                            Text(note.content, style = MaterialTheme.typography.bodyMedium)
+                            Text("Category: ${note.category}", style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
             }
 
             FloatingActionButton(
-                onClick = { /* Add functionality */ },
-                modifier = Modifier.align(Alignment.End)
+                onClick = { /* Add logic */ },
+                modifier = Modifier.align(Alignment.End).padding(16.dp)
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add")
             }
