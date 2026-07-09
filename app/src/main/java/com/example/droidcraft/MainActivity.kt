@@ -16,7 +16,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 data class Note(val id: Int, val title: String, val content: String, val category: String)
@@ -26,7 +25,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                MainAppScreen()
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    NoteApp()
+                }
             }
         }
     }
@@ -34,68 +35,59 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainAppScreen() {
+fun NoteApp() {
     var isLocked by remember { mutableStateOf(true) }
-    var pin by remember { mutableStateOf("") }
-    val categories = listOf("All", "Work", "Personal", "Ideas")
+    var password by remember { mutableStateOf("") }
+    val notes = remember { mutableStateListOf(
+        Note(1, "Work Task", "Finish report", "Work"),
+        Note(2, "Grocery", "Buy milk", "Personal"),
+        Note(3, "Idea", "New app feature", "Work")
+    ) }
     var selectedCategory by remember { mutableStateOf("All") }
-    
-    val notes = remember {
-        mutableStateListOf(
-            Note(1, "Project Docs", "Finish architecture", "Work"),
-            Note(2, "Grocery", "Milk, Bread, Eggs", "Personal"),
-            Note(3, "App Idea", "Build a note app", "Ideas")
-        )
-    }
+    val categories = listOf("All", "Work", "Personal")
 
     if (isLocked) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
+            modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(64.dp))
-            Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
-                value = pin,
-                onValueChange = { pin = it },
-                label = { Text("Enter PIN (1234)") },
-                singleLine = true
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Enter Password") },
+                modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { if (pin == "1234") isLocked = false }) {
+            Button(onClick = { if (password == "1234") isLocked = false }) {
                 Text("Unlock")
             }
         }
     } else {
         Scaffold(
-            topBar = { TopAppBar(title = { Text("My Notes") }) },
-            floatingActionButton = {
-                FloatingActionButton(onClick = {}) { Icon(Icons.Default.Add, contentDescription = null) }
+            topBar = {
+                TopAppBar(title = { Text("My Notes") }, actions = {
+                    IconButton(onClick = { isLocked = true }) { Icon(Icons.Default.Lock, null) }
+                })
             }
         ) { padding ->
-            Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+            Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     categories.forEach { category ->
                         FilterChip(
                             selected = selectedCategory == category,
                             onClick = { selectedCategory = category },
-                            label = { Text(category) },
-                            modifier = Modifier.padding(horizontal = 4.dp)
+                            label = { Text(category) }
                         )
                     }
                 }
-                
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val filtered = if (selectedCategory == "All") notes 
-                                   else notes.filter { it.category == selectedCategory }
-                    
-                    items(filtered) { note ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(notes.filter { selectedCategory == "All" || it.category == selectedCategory }) { note ->
+                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text(note.title, fontWeight = FontWeight.Bold)
-                                Text(note.content, style = MaterialTheme.typography.bodySmall)
-                                Text(note.category, color = MaterialTheme.colorScheme.primary)
+                                Text(note.title, style = MaterialTheme.typography.titleMedium)
+                                Text(note.content, style = MaterialTheme.typography.bodyMedium)
+                                Text(note.category, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                             }
                         }
                     }
