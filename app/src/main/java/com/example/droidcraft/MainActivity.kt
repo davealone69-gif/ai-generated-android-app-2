@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +25,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    NotePadApp()
+                    NoteApp()
                 }
             }
         }
@@ -34,64 +33,67 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun NotePadApp() {
-    var isLocked by remember { mutableStateOf(false) }
+fun NoteApp() {
+    var isLocked by remember { mutableStateOf(true) }
+    var password by remember { mutableStateOf("") }
+    val categories = listOf("All", "Work", "Personal", "Ideas")
     var selectedCategory by remember { mutableStateOf("All") }
-    val categories = listOf("All", "Personal", "Work", "Ideas")
-    
-    val notes = remember {
-        mutableStateListOf(
-            Note(1, "Meeting", "Discuss project timeline", "Work"),
-            Note(2, "Grocery", "Buy milk and bread", "Personal"),
-            Note(3, "App Idea", "Build a note app", "Ideas")
-        )
-    }
+    val notes = remember { mutableStateListOf(
+        Note(1, "Project Deadline", "Complete the documentation", "Work"),
+        Note(2, "Buy Milk", "Don't forget the grocery list", "Personal"),
+        Note(3, "Compose Article", "Ideas for Android development", "Ideas")
+    )}
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    if (isLocked) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Text("My Notes", style = MaterialTheme.typography.headlineMedium)
-            IconButton(onClick = { isLocked = !isLocked }) {
-                Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = "Lock")
+            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(64.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Enter Password") },
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { if (password == "1234") isLocked = false }) {
+                Text("Unlock App")
             }
         }
-
-        if (isLocked) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("App is Locked", style = MaterialTheme.typography.headlineSmall)
+    } else {
+        Scaffold(
+            floatingActionButton = {
+                FloatingActionButton(onClick = {}) { Icon(Icons.Default.Add, contentDescription = "Add") }
             }
-        } else {
-            // Category Filter
-            Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                categories.forEach { category ->
-                    FilterChip(
-                        selected = selectedCategory == category,
-                        onClick = { selectedCategory = category },
-                        label = { Text(category) },
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
+        ) { padding ->
+            Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+                Text("My Notes", style = MaterialTheme.typography.headlineMedium)
+                
+                Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                    categories.forEach { category ->
+                        FilterChip(
+                            selected = selectedCategory == category,
+                            onClick = { selectedCategory = category },
+                            label = { Text(category) },
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                    }
                 }
-            }
 
-            // Notes List
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
-                items(filteredNotes) { note ->
-                    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(note.title, fontWeight = FontWeight.Bold)
-                            Text(note.content, style = MaterialTheme.typography.bodyMedium)
-                            Text(note.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                LazyColumn {
+                    items(notes.filter { selectedCategory == "All" || it.category == selectedCategory }) { note ->
+                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(note.title, fontWeight = FontWeight.Bold)
+                                Text(note.content, style = MaterialTheme.typography.bodyMedium)
+                                Text(note.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            }
                         }
                     }
                 }
-            }
-            
-            FloatingActionButton(onClick = { /* Add logic */ }, modifier = Modifier.align(Alignment.End)) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
             }
         }
     }
