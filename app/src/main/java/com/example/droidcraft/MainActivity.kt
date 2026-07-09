@@ -3,6 +3,7 @@ package com.example.droidcraft
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,7 +16,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 data class Note(val id: Int, val title: String, val content: String, val category: String)
@@ -25,66 +26,88 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                NotePadApp()
+                MainAppScreen()
             }
         }
     }
 }
 
 @Composable
-fun NotePadApp() {
+fun MainAppScreen() {
     var isLocked by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("All") }
-    val notes = remember {
-        mutableStateListOf(
-            Note(1, "Shopping", "Buy groceries", "Work"),
-            Note(2, "Idea", "Build an app", "Personal"),
-            Note(3, "Meeting", "Discuss project", "Work")
+    var notes by remember {
+        mutableStateOf(
+            listOf(
+                Note(1, "Work", "Meeting at 10 AM", "Work"),
+                Note(2, "Groceries", "Milk, Eggs, Bread", "Personal"),
+                Note(3, "Idea", "Build a Compose App", "Projects")
+            )
         )
     }
 
-    val categories = listOf("All", "Work", "Personal")
-    val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
+    val categories = listOf("All", "Work", "Personal", "Projects")
 
-    Scaffold(
-        topBar = {
-            SmallTopAppBar(
-                title = { Text("DroidCraft Notepad") },
-                actions = {
-                    IconButton(onClick = { isLocked = !isLocked }) {
-                        Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, "Lock Toggle")
+    if (isLocked) {
+        LockScreen(onUnlock = { isLocked = false })
+    } else {
+        Scaffold(
+            topBar = {
+                SmallTopAppBar(
+                    title = { Text("DroidCraft Notes") },
+                    actions = {
+                        IconButton(onClick = { isLocked = true }) {
+                            Icon(Icons.Default.Lock, contentDescription = "Lock App")
+                        }
                     }
-                }
-            )
-        }
-    ) { padding ->
-        if (isLocked) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("App is Locked. Please unlock to view notes.", fontWeight = FontWeight.Bold)
+                )
             }
-        } else {
-            Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ) { padding ->
+            Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
+                // Category Filter
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                     categories.forEach { category ->
                         FilterChip(
                             selected = selectedCategory == category,
                             onClick = { selectedCategory = category },
-                            label = { Text(category) }
+                            label = { Text(category) },
+                            modifier = Modifier.padding(end = 8.dp)
                         )
                     }
                 }
-                Spacer(Modifier.height(16.dp))
+
+                // Notes List
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val filteredNotes = if (selectedCategory == "All") notes 
+                                       else notes.filter { it.category == selectedCategory }
+                    
                     items(filteredNotes) { note ->
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(16.dp)) {
-                                Text(note.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(note.title, style = MaterialTheme.typography.titleMedium)
                                 Text(note.content, style = MaterialTheme.typography.bodyMedium)
-                                Text("Category: ${note.category}", style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun LockScreen(onUnlock: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Default.LockOpen, contentDescription = null, modifier = Modifier.size(64.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("App is Locked", style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(onClick = onUnlock) {
+                Text("Unlock")
             }
         }
     }
