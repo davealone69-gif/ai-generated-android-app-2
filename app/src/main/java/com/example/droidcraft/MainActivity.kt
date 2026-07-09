@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 
 data class Note(val id: Int, val title: String, val content: String, val category: String)
 
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
