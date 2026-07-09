@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
@@ -14,6 +15,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -48,6 +50,8 @@ fun NotePadApp() {
     var selectedCategory by remember { mutableStateOf("All") }
     val categories = listOf("All", "Personal", "Work")
 
+    val unlockAction = { if (pin == "1234") isLocked = false }
+
     if (isLocked) {
         Column(
             modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -62,15 +66,16 @@ fun NotePadApp() {
                 label = { Text("Enter PIN (1234)") },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { unlockAction() })
             )
-            Button(onClick = { if (pin == "1234") isLocked = false }, modifier = Modifier.padding(top = 16.dp)) {
+            Button(onClick = unlockAction, modifier = Modifier.padding(top = 16.dp)) {
                 Text("Unlock")
             }
         }
     } else {
-        Scaffold { padding ->
-            Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
+        Scaffold { innerPadding ->
+            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(16.dp)) {
                 Row(modifier = Modifier.padding(bottom = 8.dp)) {
                     categories.forEach { category ->
                         FilterChip(
