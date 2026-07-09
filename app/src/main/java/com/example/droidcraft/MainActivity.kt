@@ -33,22 +33,24 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun NoteApp() {
     var isLocked by remember { mutableStateOf(false) }
-    var selectedCategory by remember { mutableStateOf("All") }
-    val notes = remember {
-        mutableStateListOf(
-            Note(1, "Shopping", "Buy milk and eggs", "Personal"),
-            Note(2, "Work", "Submit report by 5 PM", "Work"),
-            Note(3, "Idea", "Build a compose app", "Personal")
+    var notes by remember {
+        mutableStateOf(
+            listOf(
+                Note(1, "Work Task", "Finish project report", "Work"),
+                Note(2, "Shopping", "Buy groceries", "Personal"),
+                Note(3, "Idea", "Build a Compose app", "Work")
+            )
         )
     }
+    var selectedCategory by remember { mutableStateOf("All") }
+    val categories = listOf("All", "Work", "Personal")
 
-    val categories = listOf("All", "Personal", "Work")
     val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
 
     Scaffold(
         topBar = {
             SmallTopAppBar(
-                title = { Text("DroidCraft Notes") },
+                title = { Text("DroidCraft Notepad") },
                 actions = {
                     IconButton(onClick = { isLocked = !isLocked }) {
                         Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, "Lock")
@@ -59,22 +61,20 @@ fun NoteApp() {
     ) { padding ->
         if (isLocked) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("App Locked. Unlock to view notes.")
+                Text("App is Locked", style = MaterialTheme.typography.headlineMedium)
             }
         } else {
             Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-                // Category Filter
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    categories.forEach { category ->
+                    categories.forEach { cat ->
                         FilterChip(
-                            selected = selectedCategory == category,
-                            onClick = { selectedCategory = category },
-                            label = { Text(category) }
+                            selected = selectedCategory == cat,
+                            onClick = { selectedCategory = cat },
+                            label = { Text(cat) }
                         )
                     }
                 }
-                Spacer(Modifier.height(16.dp))
-                // Notes List
+                Spacer(modifier = Modifier.height(16.dp))
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(filteredNotes) { note ->
                         Card(modifier = Modifier.fillMaxWidth()) {
