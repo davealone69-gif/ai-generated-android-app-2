@@ -50,7 +50,7 @@ fun NotePadApp() {
     var selectedCategory by remember { mutableStateOf("All") }
     val categories = listOf("All", "Personal", "Work")
 
-    val unlockAction = { if (pin == "1234") isLocked = false }
+    val unlockAction: () -> Unit = { if (pin == "1234") isLocked = false }
 
     if (isLocked) {
         Column(
