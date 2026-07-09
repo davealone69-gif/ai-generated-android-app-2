@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 data class Note(val id: Int, val title: String, val content: String, val category: String)
@@ -39,11 +38,14 @@ fun MainAppScreen() {
     var selectedCategory by remember { mutableStateOf("All") }
     val notes = remember {
         mutableStateListOf(
-            Note(1, "Work", "Finish project", "Work"),
-            Note(2, "Grocery", "Buy milk and eggs", "Personal"),
-            Note(3, "Idea", "Build a Compose app", "Work")
+            Note(1, "Grocery", "Buy milk and eggs", "Personal"),
+            Note(2, "Meeting", "Discuss project Q4", "Work"),
+            Note(3, "Idea", "Build a mobile app", "Personal")
         )
     }
+
+    val categories = listOf("All", "Work", "Personal")
+    val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
 
     if (isLocked) {
         LockScreen(onUnlock = { isLocked = false })
@@ -54,30 +56,30 @@ fun MainAppScreen() {
                     title = { Text("DroidCraft Notes") },
                     actions = {
                         IconButton(onClick = { isLocked = true }) {
-                            Icon(Icons.Default.Lock, contentDescription = "Lock")
+                            Icon(Icons.Default.Lock, contentDescription = "Lock App")
                         }
                     }
                 )
             }
         ) { padding ->
             Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-                val categories = listOf("All", "Work", "Personal")
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    categories.forEach { cat ->
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    categories.forEach { category ->
                         FilterChip(
-                            selected = selectedCategory == cat,
-                            onClick = { selectedCategory = cat },
-                            label = { Text(cat) }
+                            selected = selectedCategory == category,
+                            onClick = { selectedCategory = category },
+                            label = { Text(category) }
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(notes.filter { selectedCategory == "All" || it.category == selectedCategory }) { note ->
+                    items(filteredNotes) { note ->
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text(note.title, fontWeight = FontWeight.Bold)
+                                Text(note.title, style = MaterialTheme.typography.titleMedium)
                                 Text(note.content, style = MaterialTheme.typography.bodyMedium)
+                                Text(note.category, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                             }
                         }
                     }
@@ -90,7 +92,7 @@ fun MainAppScreen() {
 @Composable
 fun LockScreen(onUnlock: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
