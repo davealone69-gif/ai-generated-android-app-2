@@ -8,7 +8,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
@@ -26,77 +25,77 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            NotePadApp()
+            MaterialTheme {
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    NoteApp()
+                }
+            }
         }
     }
 }
 
 @Composable
-fun NotePadApp() {
+fun NoteApp() {
     var isLocked by remember { mutableStateOf(true) }
     var pin by remember { mutableStateOf("") }
+    
+    if (isLocked) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(64.dp))
+            Text("App Locked", style = MaterialTheme.typography.headlineMedium)
+            OutlinedTextField(
+                value = pin,
+                onValueChange = { pin = it },
+                label = { Text("Enter PIN (1234)") },
+                modifier = Modifier.padding(16.dp)
+            )
+            Button(onClick = { if (pin == "1234") isLocked = false }) {
+                Text("Unlock")
+            }
+        }
+    } else {
+        NoteScreen()
+    }
+}
+
+@Composable
+fun NoteScreen() {
     val notes = remember { mutableStateListOf(
-        Note(1, "Grocery List", "Milk, Eggs, Bread", "Personal"),
-        Note(2, "Meeting", "Discuss Q4 strategy", "Work"),
-        Note(3, "Idea", "Build a Compose app", "Work")
-    )}
+        Note(1, "Grocery", "Buy milk and eggs", "Personal"),
+        Note(2, "Meeting", "Discuss project roadmap", "Work"),
+        Note(3, "Idea", "Build a Compose app", "Personal")
+    ) }
     var selectedCategory by remember { mutableStateOf("All") }
     val categories = listOf("All", "Personal", "Work")
 
-    if (isLocked) {
-        LockScreen(pin = pin, onPinChange = { pin = it }, onUnlock = { if (pin == "1234") isLocked = false })
-    } else {
-        Scaffold(
-            floatingActionButton = {
-                FloatingActionButton(onClick = { /* Add note logic */ }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add")
-                }
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text("My Notes", style = MaterialTheme.typography.headlineMedium)
+        
+        Row(modifier = Modifier.padding(vertical = 8.dp)) {
+            categories.forEach { category ->
+                FilterChip(
+                    selected = selectedCategory == category,
+                    onClick = { selectedCategory = category },
+                    label = { Text(category) },
+                    modifier = Modifier.padding(end = 8.dp)
+                )
             }
-        ) { padding ->
-            Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
-                Text("My Notes", style = MaterialTheme.typography.headlineMedium)
-                Row(modifier = Modifier.padding(vertical = 8.dp)) {
-                    categories.forEach { cat ->
-                        FilterChip(
-                            selected = selectedCategory == cat,
-                            onClick = { selectedCategory = cat },
-                            label = { Text(cat) },
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                    }
-                }
-                LazyColumn {
-                    val filtered = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
-                    items(filtered) { note ->
-                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(note.title, fontWeight = FontWeight.Bold)
-                                Text(note.content, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
+        }
+
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            items(notes.filter { selectedCategory == "All" || it.category == selectedCategory }) { note ->
+                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(note.title, fontWeight = FontWeight.Bold)
+                        Text(note.content, style = MaterialTheme.typography.bodyMedium)
+                        Text(note.category, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-fun LockScreen(pin: String, onPinChange: (String) -> Unit, onUnlock: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(64.dp))
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(
-            value = pin,
-            onValueChange = onPinChange,
-            label = { Text("Enter PIN (1234)") },
-            singleLine = true
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onUnlock) { Text("Unlock") }
     }
 }
