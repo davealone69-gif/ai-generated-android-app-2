@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 data class Note(val id: Int, val title: String, val content: String, val category: String)
@@ -24,12 +25,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                NoteApp()
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    NoteApp()
+                }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteApp() {
     var isLocked by remember { mutableStateOf(false) }
@@ -38,19 +42,19 @@ fun NoteApp() {
     
     val notes = remember {
         mutableStateListOf(
-            Note(1, "Meeting", "Discuss project scope", "Work"),
-            Note(2, "Grocery", "Buy milk and eggs", "Personal"),
+            Note(1, "Meeting", "Discuss project updates", "Work"),
+            Note(2, "Gym", "Leg day at 6 PM", "Personal"),
             Note(3, "App Idea", "Build a note app", "Ideas")
         )
     }
 
     Scaffold(
         topBar = {
-            SmallTopAppBar(
+            TopAppBar(
                 title = { Text("DroidCraft Notes") },
                 actions = {
                     IconButton(onClick = { isLocked = !isLocked }) {
-                        Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = "Lock")
+                        Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, "Lock")
                     }
                 }
             )
@@ -58,28 +62,33 @@ fun NoteApp() {
     ) { padding ->
         if (isLocked) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("App is locked. Unlock to view notes.", style = MaterialTheme.typography.headlineSmall)
+                Text("App Locked. Tap Unlock icon to view notes.")
             }
         } else {
-            Column(Modifier.fillMaxSize().padding(padding)) {
-                ScrollableTabRow(selectedTabIndex = categories.indexOf(selectedCategory)) {
+            Column(modifier = Modifier.padding(padding).padding(16.dp)) {
+                // Category Filter
+                Row(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                     categories.forEach { category ->
-                        Tab(
+                        FilterChip(
                             selected = selectedCategory == category,
                             onClick = { selectedCategory = category },
-                            text = { Text(category) }
+                            label = { Text(category) },
+                            modifier = Modifier.padding(end = 8.dp)
                         )
                     }
                 }
 
-                LazyColumn(modifier = Modifier.padding(16.dp)) {
-                    val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
+                // Note List
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val filteredNotes = if (selectedCategory == "All") notes 
+                                        else notes.filter { it.category == selectedCategory }
+                    
                     items(filteredNotes) { note ->
-                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                        Card(modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text(note.title, style = MaterialTheme.typography.titleMedium)
+                                Text(note.title, fontWeight = FontWeight.Bold)
                                 Text(note.content, style = MaterialTheme.typography.bodyMedium)
-                                Text(note.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                Text("Category: ${note.category}", style = MaterialTheme.typography.labelSmall)
                             }
                         }
                     }
