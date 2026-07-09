@@ -30,7 +30,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteApp() {
     var isLocked by remember { mutableStateOf(false) }
@@ -39,7 +38,7 @@ fun NoteApp() {
         mutableStateListOf(
             Note(1, "Shopping", "Buy milk and bread", "Personal"),
             Note(2, "Work", "Finish project report", "Work"),
-            Note(3, "Idea", "Build an Android app", "Work")
+            Note(3, "Idea", "Build an Android app", "Personal")
         )
     }
 
@@ -48,23 +47,23 @@ fun NoteApp() {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("DroidCraft Notepad") },
+            SmallTopAppBar(
+                title = { Text("DroidCraft Notes") },
                 actions = {
                     IconButton(onClick = { isLocked = !isLocked }) {
-                        Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, "Lock")
+                        Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = "Lock")
                     }
                 }
             )
         }
     ) { padding ->
         if (isLocked) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Text("App Locked. Unlock to view notes.", style = MaterialTheme.typography.headlineSmall)
             }
         } else {
-            Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     categories.forEach { category ->
                         FilterChip(
                             selected = selectedCategory == category,
@@ -73,11 +72,11 @@ fun NoteApp() {
                         )
                     }
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(16.dp))
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(filteredNotes) { note ->
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(16.dp)) {
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(16.dp)) {
                                 Text(note.title, style = MaterialTheme.typography.titleMedium)
                                 Text(note.content, style = MaterialTheme.typography.bodyMedium)
                                 Text(note.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
