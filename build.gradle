@@ -1,1 +1,10 @@
-// Empty file to remove legacy configuration; build logic is now handled in app/build.gradle.kts
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.2'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22'
+    }
+}
