@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 data class Note(val id: Int, val title: String, val content: String, val category: String)
@@ -24,8 +25,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    NoteApp()
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    NotePadApp()
                 }
             }
         }
@@ -33,53 +34,60 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun NoteApp() {
+fun NotePadApp() {
     var isLocked by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("All") }
     val categories = listOf("All", "Work", "Personal", "Ideas")
     
     val notes = remember {
         mutableStateListOf(
-            Note(1, "Meeting", "Discuss project timeline", "Work"),
-            Note(2, "Buy milk", "Shopping list for tonight", "Personal"),
-            Note(3, "Idea", "Build a cool Android app", "Ideas")
+            Note(1, "Meeting", "Discuss project launch", "Work"),
+            Note(2, "Groceries", "Milk, Eggs, Bread", "Personal"),
+            Note(3, "App Idea", "Build a AI note app", "Ideas")
         )
     }
 
     if (isLocked) {
         LockScreen(onUnlock = { isLocked = false })
     } else {
-        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("My Notes", style = MaterialTheme.typography.headlineMedium)
-                IconButton(onClick = { isLocked = true }) {
-                    Icon(Icons.Default.Lock, contentDescription = "Lock App")
+        Scaffold(
+            topBar = {
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("My Notes", style = MaterialTheme.typography.headlineMedium)
+                        IconButton(onClick = { isLocked = true }) {
+                            Icon(Icons.Default.Lock, contentDescription = "Lock App")
+                        }
+                    }
+                    ScrollableTabRow(selectedTabIndex = categories.indexOf(selectedCategory)) {
+                        categories.forEach { category ->
+                            Tab(
+                                selected = selectedCategory == category,
+                                onClick = { selectedCategory = category },
+                                text = { Text(category) }
+                            )
+                        }
+                    }
+                }
+            },
+            floatingActionButton = {
+                FloatingActionButton(onClick = {}) {
+                    Icon(Icons.Default.Add, contentDescription = "Add")
                 }
             }
-
-            // Category Filter
-            ScrollableTabRow(selectedTabIndex = categories.indexOf(selectedCategory)) {
-                categories.forEach { category ->
-                    Tab(
-                        selected = selectedCategory == category,
-                        onClick = { selectedCategory = category },
-                        text = { Text(category) }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyColumn(modifier = Modifier.weight(1f)) {
-                val filteredNotes = if (selectedCategory == "All") notes 
-                                    else notes.filter { it.category == selectedCategory }
-                
-                items(filteredNotes) { note ->
+        ) { padding ->
+            LazyColumn(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
+                val filtered = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
+                items(filtered) { note ->
                     Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = note.title, style = MaterialTheme.typography.titleMedium)
+                            Text(text = note.title, fontWeight = FontWeight.Bold)
                             Text(text = note.content, style = MaterialTheme.typography.bodyMedium)
-                            Text(text = "Category: ${note.category}", style = MaterialTheme.typography.labelSmall)
+                            Text(text = note.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
