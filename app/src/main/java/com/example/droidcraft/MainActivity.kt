@@ -10,10 +10,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 data class Note(val id: Int, val title: String, val content: String, val category: String)
@@ -24,7 +26,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    NotePadApp()
+                    NoteApp()
                 }
             }
         }
@@ -32,71 +34,65 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun NotePadApp() {
-    var isLocked by remember { mutableStateOf(true) }
-    var password by remember { mutableStateOf("") }
-    
+fun NoteApp() {
+    var isLocked by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf("All") }
+    val categories = listOf("All", "Work", "Personal", "Ideas")
+    val notes = remember {
+        mutableStateListOf(
+            Note(1, "Meeting", "Discuss project timeline", "Work"),
+            Note(2, "Buy Groceries", "Milk, Eggs, Bread", "Personal"),
+            Note(3, "App Idea", "Build a note app", "Ideas")
+        )
+    }
+
     if (isLocked) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("App Locked", style = MaterialTheme.typography.headlineMedium)
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Enter Password (try '123')") },
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-            Button(onClick = { if (password == "123") isLocked = false }) {
-                Icon(Icons.Default.Lock, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Unlock")
-            }
+            Icon(Icons.Default.Lock, contentDescription = "Locked", modifier = Modifier.size(64.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { isLocked = false }) { Text("Unlock App") }
         }
     } else {
-        NoteScreen()
-    }
-}
-
-@Composable
-fun NoteScreen() {
-    val notes = remember { mutableStateListOf(
-        Note(1, "Shopping", "Buy milk", "Personal"),
-        Note(2, "Work", "Submit report", "Work"),
-        Note(3, "Gym", "Leg day", "Personal")
-    ) }
-    var selectedCategory by remember { mutableStateOf("All") }
-    val categories = listOf("All", "Personal", "Work")
-
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("My Notes", style = MaterialTheme.typography.headlineSmall)
-        
-        Row(modifier = Modifier.padding(vertical = 8.dp)) {
-            categories.forEach { category ->
-                FilterChip(
-                    selected = selectedCategory == category,
-                    onClick = { selectedCategory = category },
-                    label = { Text(category) },
-                    modifier = Modifier.padding(end = 8.dp)
-                )
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("My Notes", style = MaterialTheme.typography.headlineMedium)
+                IconButton(onClick = { isLocked = true }) {
+                    Icon(Icons.Default.LockOpen, contentDescription = "Lock")
+                }
             }
-        }
 
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            items(notes.filter { selectedCategory == "All" || it.category == selectedCategory }) { note ->
-                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(note.title, style = MaterialTheme.typography.titleMedium)
-                        Text(note.content, style = MaterialTheme.typography.bodyMedium)
+            // Category Filter
+            ScrollableTabRow(selectedTabIndex = categories.indexOf(selectedCategory)) {
+                categories.forEach { category ->
+                    Tab(
+                        selected = selectedCategory == category,
+                        onClick = { selectedCategory = category },
+                        text = { Text(category) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(notes.filter { selectedCategory == "All" || it.category == selectedCategory }) { note ->
+                    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(text = note.title, fontWeight = FontWeight.Bold)
+                            Text(text = note.content, style = MaterialTheme.typography.bodyMedium)
+                            Text(text = note.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
             }
-        }
-
-        FloatingActionButton(onClick = {}, modifier = Modifier.align(Alignment.End)) {
-            Icon(Icons.Default.Add, contentDescription = "Add")
+            
+            FloatingActionButton(onClick = {}, modifier = Modifier.align(Alignment.End)) {
+                Icon(Icons.Default.Add, contentDescription = "Add")
+            }
         }
     }
 }
