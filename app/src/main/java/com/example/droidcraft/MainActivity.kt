@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,84 +26,74 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                MainAppScreen()
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                    NotePadApp()
+                }
             }
         }
     }
 }
 
 @Composable
-fun MainAppScreen() {
-    var isLocked by remember { mutableStateOf(false) }
-    var selectedCategory by remember { mutableStateOf("All") }
-    val categories = listOf("All", "Work", "Personal", "Ideas")
+fun NotePadApp() {
+    var isLocked by remember { mutableStateOf(true) }
+    var password by remember { mutableStateOf("") }
     
-    val notes = remember {
-        mutableStateListOf(
-            Note(1, "Meeting", "Discuss project scope", "Work"),
-            Note(2, "Grocery", "Buy milk and eggs", "Personal"),
-            Note(3, "App Idea", "Build a note app", "Ideas")
-        )
-    }
-
     if (isLocked) {
-        LockScreen(onUnlock = { isLocked = false })
+        LockScreen(onUnlock = { if (password == "1234") isLocked = false }) { password = it }
     } else {
-        Scaffold(
-            topBar = {
-                SmallTopAppBar(
-                    title = { Text("DroidCraft Notes") },
-                    actions = {
-                        IconButton(onClick = { isLocked = true }) {
-                            Icon(Icons.Default.Lock, contentDescription = "Lock App")
-                        }
-                    }
+        NoteScreen(onLock = { isLocked = true })
+    }
+}
+
+@Composable
+fun LockScreen(onUnlock: () -> Unit, onPasswordChange: (String) -> Unit) {
+    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("App Locked", style = MaterialTheme.typography.headlineMedium)
+        OutlinedTextField(value = "", onValueChange = onPasswordChange, label = { Text("Enter Password (1234)") })
+        Button(onClick = onUnlock) { Text("Unlock") }
+    }
+}
+
+@Composable
+fun NoteScreen(onLock: () -> Unit) {
+    val categories = listOf("All", "Work", "Personal", "Ideas")
+    var selectedCategory by remember { mutableStateOf("All") }
+    val notes = remember { mutableStateListOf(
+        Note(1, "Meeting", "Discuss project", "Work"),
+        Note(2, "Buy milk", "Shopping list", "Personal")
+    )}
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("My Notes", style = MaterialTheme.typography.headlineSmall)
+            IconButton(onClick = onLock) { Icon(Icons.Default.Lock, contentDescription = "Lock") }
+        }
+        
+        Row(modifier = Modifier.padding(vertical = 8.dp)) {
+            categories.forEach { cat ->
+                FilterChip(
+                    selected = selectedCategory == cat,
+                    onClick = { selectedCategory = cat },
+                    label = { Text(cat) },
+                    modifier = Modifier.padding(end = 8.dp)
                 )
             }
-        ) { padding ->
-            Column(modifier = Modifier.padding(padding).fillMaxSize().padding(16.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    categories.forEach { category ->
-                        FilterChip(
-                            selected = selectedCategory == category,
-                            onClick = { selectedCategory = category },
-                            label = { Text(category) }
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(notes.filter { selectedCategory == "All" || it.category == selectedCategory }) { note ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(note.title, fontWeight = FontWeight.Bold)
-                                Text(note.content, style = MaterialTheme.typography.bodyMedium)
-                                Text("Category: ${note.category}", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                            }
-                        }
+        }
+
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            items(notes.filter { selectedCategory == "All" || it.category == selectedCategory }) { note ->
+                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(note.title, fontWeight = FontWeight.Bold)
+                        Text(note.content, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
         }
-    }
-}
 
-@Composable
-fun LockScreen(onUnlock: () -> Unit) {
-    Box(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(64.dp))
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("App is Locked", style = MaterialTheme.typography.headlineSmall)
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = onUnlock) {
-                Icon(Icons.Default.LockOpen, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Unlock")
-            }
+        FloatingActionButton(onClick = {}, modifier = Modifier.align(Alignment.End)) {
+            Icon(Icons.Default.Add, contentDescription = "Add")
         }
     }
 }
