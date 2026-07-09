@@ -38,19 +38,19 @@ fun NoteApp() {
     var isLocked by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf("All") }
     val notes = remember {
-        listOf(
-            Note(1, "Work Task", "Finish the report", "Work"),
-            Note(2, "Grocery", "Buy milk and eggs", "Personal"),
-            Note(3, "Idea", "Write a new novel", "Creative")
+        mutableStateListOf(
+            Note(1, "Grocery", "Buy milk and eggs", "Personal"),
+            Note(2, "Work", "Finish project report", "Work"),
+            Note(3, "Idea", "Build a Compose app", "Personal")
         )
     }
 
-    val categories = listOf("All", "Work", "Personal", "Creative")
+    val categories = listOf("All", "Personal", "Work")
     val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("My Notes", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text("My Notes", style = MaterialTheme.typography.headlineMedium)
             IconButton(onClick = { isLocked = !isLocked }) {
                 Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = "Lock")
             }
@@ -58,7 +58,7 @@ fun NoteApp() {
 
         if (isLocked) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("App is locked. Unlock to view notes.", style = MaterialTheme.typography.bodyLarge)
+                Text("App is locked", style = MaterialTheme.typography.headlineSmall)
             }
         } else {
             ScrollableTabRow(selectedTabIndex = categories.indexOf(selectedCategory)) {
@@ -73,16 +73,20 @@ fun NoteApp() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyColumn(modifier = Modifier.weight(1f)) {
                 items(filteredNotes) { note ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(note.title, style = MaterialTheme.typography.titleMedium)
+                            Text(note.title, fontWeight = FontWeight.Bold)
                             Text(note.content, style = MaterialTheme.typography.bodyMedium)
-                            Text(note.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            Text("Category: ${note.category}", style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
+            }
+
+            FloatingActionButton(onClick = {}, modifier = Modifier.align(Alignment.End)) {
+                Icon(Icons.Default.Add, contentDescription = "Add")
             }
         }
     }
