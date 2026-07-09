@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    NoteApp()
+                    NotePadApp()
                 }
             }
         }
@@ -35,67 +35,53 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun NoteApp() {
+fun NotePadApp() {
     var isLocked by remember { mutableStateOf(true) }
     var pin by remember { mutableStateOf("") }
-    
+    val notes = remember { mutableStateListOf(
+        Note(1, "Grocery", "Buy milk and bread", "Personal"),
+        Note(2, "Meeting", "Discuss project roadmap", "Work"),
+        Note(3, "Idea", "Build a Compose app", "Work")
+    )}
+    var selectedCategory by remember { mutableStateOf("All") }
+
     if (isLocked) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(64.dp))
-            OutlinedTextField(
-                value = pin,
-                onValueChange = { pin = it },
-                label = { Text("Enter PIN (1234)") },
-                modifier = Modifier.padding(16.dp)
-            )
-            Button(onClick = { if (pin == "1234") isLocked = false }) {
-                Text("Unlock")
-            }
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            Text("App Locked", style = MaterialTheme.typography.headlineMedium)
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(value = pin, onValueChange = { pin = it }, label = { Text("Enter PIN (1234)") }, singleLine = true)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { if (pin == "1234") isLocked = false }) { Text("Unlock") }
         }
     } else {
-        NoteListScreen()
-    }
-}
+        val categories = listOf("All", "Work", "Personal")
+        val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
 
-@Composable
-fun NoteListScreen() {
-    val categories = listOf("All", "Work", "Personal", "Ideas")
-    var selectedCategory by remember { mutableStateOf("All") }
-    val notes = remember {
-        mutableStateListOf(
-            Note(1, "Meeting", "Discuss project", "Work"),
-            Note(2, "Grocery", "Buy milk", "Personal"),
-            Note(3, "App idea", "Build a note app", "Ideas")
-        )
-    }
-
-    val filteredNotes = if (selectedCategory == "All") notes else notes.filter { it.category == selectedCategory }
-
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("My Notes", style = MaterialTheme.typography.headlineMedium)
-        
-        Row(modifier = Modifier.padding(vertical = 8.dp)) {
-            categories.forEach { cat ->
-                FilterChip(
-                    selected = selectedCategory == cat,
-                    onClick = { selectedCategory = cat },
-                    label = { Text(cat) },
-                    modifier = Modifier.padding(end = 8.dp)
-                )
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("My Notes", style = MaterialTheme.typography.headlineSmall)
+                IconButton(onClick = { isLocked = true; pin = "" }) { Icon(Icons.Default.Lock, contentDescription = "Lock") }
             }
-        }
+            
+            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                categories.forEach { cat ->
+                    FilterChip(
+                        selected = selectedCategory == cat,
+                        onClick = { selectedCategory = cat },
+                        label = { Text(cat) },
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+            }
 
-        LazyColumn(modifier = Modifier.weight(1f)) {
-            items(filteredNotes) { note ->
-                Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(note.title, fontWeight = FontWeight.Bold)
-                        Text(note.content, style = MaterialTheme.typography.bodyMedium)
-                        Text(note.category, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(filteredNotes) { note ->
+                    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(note.title, fontWeight = FontWeight.Bold)
+                            Text(note.content, style = MaterialTheme.typography.bodyMedium)
+                            Text(note.category, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                        }
                     }
                 }
             }
