@@ -32,67 +32,72 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotePadApp() {
     var isLocked by remember { mutableStateOf(true) }
-    var pin by remember { mutableStateOf("") }
-    val notes = remember { mutableStateListOf(
-        Note(1, "Groceries", "Milk, Bread, Eggs", "Personal"),
-        Note(2, "Work", "Finish project report", "Work"),
-        Note(3, "Ideas", "Write a sci-fi novel", "Creative")
-    ) }
+    var pinInput by remember { mutableStateOf("") }
+    val notes = remember {
+        mutableStateListOf(
+            Note(1, "Grocery", "Milk, Bread", "Personal"),
+            Note(2, "Meeting", "Discuss Q4 goals", "Work"),
+            Note(3, "Idea", "Build a Compose app", "Personal")
+        )
+    }
     var selectedCategory by remember { mutableStateOf("All") }
-    val categories = listOf("All", "Personal", "Work", "Creative")
+    val categories = listOf("All", "Personal", "Work")
 
     if (isLocked) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(24.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(64.dp))
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Enter PIN (1234)", style = MaterialTheme.typography.headlineSmall)
             OutlinedTextField(
-                value = pin,
-                onValueChange = { pin = it },
+                value = pinInput,
+                onValueChange = { pinInput = it },
+                label = { Text("Enter PIN (1234)") },
                 singleLine = true
             )
-            Button(onClick = { if (pin == "1234") isLocked = false }, modifier = Modifier.padding(top = 16.dp)) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(onClick = { if (pinInput == "1234") isLocked = false }) {
                 Text("Unlock")
             }
         }
     } else {
-        Scaffold(
-            topBar = { TopAppBar(title = { Text("DroidCraft Notes") }) },
-            floatingActionButton = {
-                FloatingActionButton(onClick = { /* Add note logic */ }) {
-                    Icon(Icons.Default.Add, contentDescription = "Add")
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Text("My Notes", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            
+            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                categories.forEach { cat ->
+                    FilterChip(
+                        selected = selectedCategory == cat,
+                        onClick = { selectedCategory = cat },
+                        label = { Text(cat) },
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
                 }
             }
-        ) { padding ->
-            Column(modifier = Modifier.padding(padding).padding(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    categories.forEach { cat ->
-                        FilterChip(
-                            selected = selectedCategory == cat,
-                            onClick = { selectedCategory = cat },
-                            label = { Text(cat) }
-                        )
-                    }
-                }
-                LazyColumn {
-                    items(notes.filter { selectedCategory == "All" || it.category == selectedCategory }) { note ->
-                        Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(note.title, fontWeight = FontWeight.Bold)
-                                Text(note.content)
-                                Text(note.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                            }
+
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                val filtered = if (selectedCategory == "All") notes 
+                             else notes.filter { it.category == selectedCategory }
+                items(filtered) { note ->
+                    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(note.title, fontWeight = FontWeight.Bold)
+                            Text(note.content, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
+            }
+
+            FloatingActionButton(
+                onClick = { },
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Add")
             }
         }
     }
