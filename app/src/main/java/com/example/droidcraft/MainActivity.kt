@@ -36,9 +36,9 @@ fun NoteApp() {
     var selectedCategory by remember { mutableStateOf("All") }
     val notes = remember {
         mutableStateListOf(
-            Note(1, "Work Task", "Finish the report", "Work"),
-            Note(2, "Grocery", "Buy milk and eggs", "Personal"),
-            Note(3, "Idea", "Build a Compose app", "Work")
+            Note(1, "Shopping", "Buy milk and eggs", "Work"),
+            Note(2, "Idea", "Build a Compose app", "Personal"),
+            Note(3, "Reminder", "Doctor appointment", "Personal")
         )
     }
 
@@ -51,7 +51,7 @@ fun NoteApp() {
                 title = { Text("DroidCraft Notes") },
                 actions = {
                     IconButton(onClick = { isLocked = !isLocked }) {
-                        Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, "Lock")
+                        Icon(if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = "Lock")
                     }
                 }
             )
@@ -59,7 +59,7 @@ fun NoteApp() {
     ) { padding ->
         if (isLocked) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("App Locked. Unlock to view notes.", style = MaterialTheme.typography.headlineSmall)
+                Text("App is Locked. Please unlock to view notes.")
             }
         } else {
             Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
